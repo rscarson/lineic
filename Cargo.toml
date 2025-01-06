@@ -1,0 +1,17 @@
+[package]
+name = "lineic"
+authors = ["@rscarson"]
+description = "Flexible linear interpolator for Rust"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+version = "0.11.0"
+repository = "https://github.com/rscarson/lineic"
+
+keywords = ["rust", "algorithms", "math", "interpolation", "mathematics"]
+categories = ["mathematics", "algorithms", "encoding", "visualization"]
+readme = "readme.md"
+
+[dependencies]
+
+[dev-dependencies]
+version-sync = "0.9.5"
