@@ -77,6 +77,8 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
 
             let end = if is_last {
                 *range.end()
+            } else if is_reversed {
+                start.checked_sub(step_by).unwrap_or(S::ZERO)
             } else {
                 start.checked_add(step_by).unwrap_or(S::MAX)
             };
