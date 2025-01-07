@@ -1,7 +1,7 @@
 use crate::{number::Numeric, InterpolationBucket};
 use std::{borrow::Cow, ops::RangeInclusive};
 
-/// A linear interpolator for a set of values.
+/// A linear interpolator for a set of values.  
 /// Interpolates between a series of discrete value sets based on a range.
 ///
 /// For example a traffic light system could be represented as:
@@ -19,8 +19,15 @@ use std::{borrow::Cow, ops::RangeInclusive};
 /// 0..=50 => RED->YLW
 /// 50..=100 => YLW->GRN
 /// */
-///
 /// ```
+///
+/// # Generics
+/// This type has 3 generics:
+/// - N: The number of values in each set
+/// - S: The numeric type representing the range for inputs
+/// - T: The numeric type representing the values to interpolate between
+///
+/// `S` and `T` can be any type implementing the [`Numeric`] trait.
 ///
 #[derive(Debug, PartialEq, Clone)]
 pub struct LinearInterpolator<'a, const N: usize, S: Numeric, T: Numeric> {
@@ -28,17 +35,21 @@ pub struct LinearInterpolator<'a, const N: usize, S: Numeric, T: Numeric> {
     is_reversed: bool,
 }
 impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T> {
-    /// Create a new linear interpolator with the given range and value sets.
+    /// Create a new linear interpolator with the given range and value sets.  
+    /// The provided range will be divided into equal segments based on the number of value sets.
     ///
     /// # Panics
-    /// Panics if the number of value sets is too large to be represented by type S
+    /// Panics if the number of value sets is too large to be represented by type S  
+    /// For a non-panic variant, see [`Self::try_new`]
     pub fn new(range: RangeInclusive<S>, value_sets: &[[T; N]]) -> Self {
         Self::try_new(range, value_sets).expect("Number of value sets too large to fit in type S")
     }
 
-    /// Create a new linear interpolator with the given range and value sets.
+    /// Create a new linear interpolator with the given range and value sets.  
+    /// The provided range will be divided into equal segments based on the number of value sets.
     ///
-    /// Returns None if the number of value sets is too large to be represented by type S
+    /// Returns None if the number of value sets is too large to be represented by type S.  
+    /// This is the non-panic variant of [`Self::new`]
     pub fn try_new(range: RangeInclusive<S>, value_sets: &[[T; N]]) -> Option<Self> {
         if value_sets.is_empty() {
             let is_reversed = *range.start() > *range.end();
@@ -101,9 +112,9 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     /// Create a new linear interpolator from a raw slice of buckets.
     ///
     /// # Safety
-    /// The buckets must form a contiguous range of values.
-    /// The buckets must be sorted by range
-    /// If the ranges are sorted in descending order, `is_reversed` should be true.
+    /// - The range for the buckets must form a continuous range
+    /// - The buckets must be sorted by range  
+    /// - If the ranges are sorted in descending order, `is_reversed` must be true.  
     pub const unsafe fn new_from_raw(
         buckets: &'a [InterpolationBucket<N, S, T>],
         is_reversed: bool,
@@ -130,6 +141,11 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
         while slice.len() > 1 {
             let mid = slice.len() / 2;
             let mid_bucket = &slice[mid];
+
+            if mid_bucket.range().contains(&s) {
+                return mid_bucket;
+            }
+
             if (!rev && s >= *mid_bucket.start()) || (rev && s <= *mid_bucket.start()) {
                 slice = &slice[mid..];
             } else {
@@ -140,10 +156,26 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
         &slice[0]
     }
 
-    /// Interpolate between the value sets based on the given value.
+    /// Interpolate between the value sets based on the given value.  
+    /// This will return a new set of values interpolated across the given range
+    ///
+    /// Uses a binary search to locate the appropriate pair of values to interpolate between
     pub fn interpolate(&self, s: S) -> [T; N] {
         let bucket = self.get_bucket(s);
         bucket.interpolate(s)
+    }
+
+    /// Attempt to find a value in the valid range that could produce the given set of values.
+    ///
+    /// This may be slow, since all buckets may be checked
+    pub fn reverse_interpolate(&self, values: &[T; N]) -> Option<S> {
+        for bucket in self.buckets() {
+            if let Some(s) = bucket.reverse_interpolate(values) {
+                return Some(s);
+            }
+        }
+
+        None
     }
 }
 

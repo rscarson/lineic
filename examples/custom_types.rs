@@ -72,34 +72,31 @@ impl lineic::Numeric for NumericUnicode {
     // Clamp this number between a minimum and maximum value
     // Without panicking if max < min
     fn clamp(self, min: Self, max: Self) -> Self {
-        Self(self.0.max(min.0).min(max.0))
-    }
-
-    // Get the absolute difference between two numbers
-    fn abs_diff(self, other: Self) -> Self {
-        let inner = if self > other {
-            self.0 - other.0
+        Self(if min > max {
+            std::cmp::Ord::clamp(self.0, min.0, max.0)
         } else {
-            other.0 - self.0
-        };
-
-        Self(inner)
+            std::cmp::Ord::clamp(self.0, max.0, min.0)
+        })
     }
 
-    // Scale this number by a factor
-    fn scale(self, factor: impl lineic::Numeric) -> Self {
-        let inner = self.0 as f64 * factor.into_f64();
-        Self(inner as u32)
-    }
+    //
+    // These are methods instead of a trait requirement for better stdlib compatibility
+    //
 
-    // This is a method instead of a trait requirement for better stdlib compatibility
     fn from_usize(value: usize) -> Option<Self> {
         u32::try_from(value).ok().map(Self)
     }
 
-    // This is also a method instead of a trait requirement for better stdlib compatibility
     fn into_f64(self) -> f64 {
         self.0 as f64
+    }
+
+    fn from_f64(value: f64) -> Option<Self> {
+        if value < u32::MAX as f64 && value >= 0.0 {
+            Some(Self(value as u32))
+        } else {
+            None
+        }
     }
 
     //
