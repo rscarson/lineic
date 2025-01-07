@@ -27,6 +27,9 @@ let interpolator = F32InterpolationBucket::new(0.0..=10.0, [30.0], [35.0]);
 assert_eq!(interpolator.interpolate(5.0), [32.5]);
 ```
 
+`lineic::interpolators::F32InterpolationBucket` here is a type alias for `lineic::InterpolationBucket<1, f32, f32>`  
+The `interpolators` module defines a set of type aliases for common same-type numeric interpolators.
+
 -----
 
 The target does not have to be a single value - here we interpolate across a pair of RGB values  
