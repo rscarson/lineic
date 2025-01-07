@@ -111,6 +111,20 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
 
     /// Create a new linear interpolator from a raw slice of buckets.
     ///
+    /// Primarily used for static or const interpolators.
+    ///
+    /// # Example
+    /// ```rust
+    /// use lineic::{InterpolationBucket, LinearInterpolator};
+    ///
+    /// const INTERPOLATOR: LinearInterpolator<3, f32, f32> = unsafe {
+    ///    LinearInterpolator::new_from_raw(&[
+    ///        InterpolationBucket::new(0.0..=50.0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    ///        InterpolationBucket::new(50.0..=100.0, [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]),
+    ///    ], false)
+    /// };
+    /// ```
+    ///
     /// # Safety
     /// - The range for the buckets must form a continuous range
     /// - The buckets must be sorted by range  
