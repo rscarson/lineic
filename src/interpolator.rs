@@ -104,22 +104,22 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     ///
     /// Primarily used for static or const interpolators.
     ///
+    /// Another way to create a const interpolator is with the [`static_interpolator!`] macro.
+    ///
     /// # Example
     /// ```rust
     /// use lineic::{InterpolationBucket, LinearInterpolator};
-    ///
-    /// const INTERPOLATOR: LinearInterpolator<3, f32, f32> = unsafe {
-    ///    LinearInterpolator::new_from_raw(&[
-    ///        InterpolationBucket::new(0.0..=50.0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
-    ///        InterpolationBucket::new(50.0..=100.0, [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]),
-    ///    ])
-    /// };
+    /// const INTERPOLATOR: LinearInterpolator<3, f32, f32> = LinearInterpolator::new_from_raw(&[
+    ///     InterpolationBucket::new_const((0.0, 50.0), [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    ///     InterpolationBucket::new_const((50.0, 100.0), [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]),
+    /// ]);
     /// ```
     ///
     /// # Safety
+    /// Results will be unpredictable if the following are not enforced:
     /// - The range for the buckets must form a continuous range
     /// - The buckets must be sorted by range  
-    pub const unsafe fn new_from_raw(buckets: &'a [InterpolationBucket<N, S, T>]) -> Self {
+    pub const fn new_from_raw(buckets: &'a [InterpolationBucket<N, S, T>]) -> Self {
         let buckets = Cow::Borrowed(buckets);
         Self { buckets }
     }
@@ -183,6 +183,35 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
 
         None
     }
+}
+
+/// A macro to create a static linear interpolator.  
+/// This macro is a convenience wrapper around [`LinearInterpolator::new_from_raw`].
+///
+/// # Example
+/// ```rust
+/// use lineic::{static_interpolator, LinearInterpolator};
+///
+/// const MY_INTERPOLATOR: LinearInterpolator<3, f32, f32> = static_interpolator! {
+///     0.0..=50.0 => [0.0, 0.0, 0.0]..[1.0, 1.0, 1.0],
+///     50.0..=100.0 => [1.0, 1.0, 1.0]..[2.0, 2.0, 2.0]
+/// };
+/// ```
+#[macro_export]
+macro_rules! static_interpolator {
+    ($(
+        $from:literal ..= $to:literal => [$($values_from:expr),+]..[$($values_to:expr),+]
+    ),+) => {
+        $crate::LinearInterpolator::new_from_raw(&[
+            $(
+                $crate::InterpolationBucket::new_const(
+                    ($from, $to),
+                    [$($values_from),+],
+                    [$($values_to),+]
+                )
+            ),+
+        ])
+    };
 }
 
 #[cfg(test)]

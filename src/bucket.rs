@@ -1,6 +1,6 @@
 use crate::{number::Numeric, ReversibleRange};
 
-/// A value set for interpolation.
+/// A value set for interpolation.  
 /// Interpolates between 2 sets of values based on a range.
 ///
 /// For interpolating between more than 2 data sets, see [`crate::LinearInterpolator`].
@@ -24,17 +24,35 @@ pub struct InterpolationBucket<const N: usize, S: Numeric, T: Numeric> {
     values_hi: [T; N],
 }
 impl<const N: usize, S: Numeric, T: Numeric> InterpolationBucket<N, S, T> {
-    /// Create a new interpolation bucket.
-    /// `range` is the range of values that this bucket interpolates between.
-    /// `values_lo` is the set of values to interpolate from.
-    /// `values_hi` is the set of values to interpolate to.
+    /// Create a new interpolation bucket.  
+    /// - `range` is the range of values that this bucket interpolates between.
+    /// - `values_lo` is the set of values to interpolate from.
+    /// - `values_hi` is the set of values to interpolate to.
     ///
-    /// This will enable the bucket to smoothly interpolate from lo to hi for T values in the range.
-    /// Values < range min will be clamped to lo.
+    /// This will enable the bucket to smoothly interpolate from lo to hi for T values in the range.  
+    /// Values < range min will be clamped to lo.  
     /// Values > range max will be clamped to hi.
     pub fn new(range: impl Into<ReversibleRange<S>>, values_lo: [T; N], values_hi: [T; N]) -> Self {
+        let range = range.into();
         Self {
-            range: range.into(),
+            range,
+            values_lo,
+            values_hi,
+        }
+    }
+
+    /// Create a new interpolation bucket.  
+    /// - `range` is the range of values that this bucket interpolates between.
+    /// - `values_lo` is the set of values to interpolate from.
+    /// - `values_hi` is the set of values to interpolate to.
+    ///
+    /// This will enable the bucket to smoothly interpolate from lo to hi for T values in the range.  
+    /// Values < range min will be clamped to lo.  
+    /// Values > range max will be clamped to hi.
+    pub const fn new_const(range: (S, S), values_lo: [T; N], values_hi: [T; N]) -> Self {
+        let range = ReversibleRange::new(range.0, range.1);
+        Self {
+            range,
             values_lo,
             values_hi,
         }
