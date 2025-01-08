@@ -20,6 +20,9 @@ jobs:
     - name: Run tests
       run: cargo test
 
+    - name: Make sure no_std works
+      run: cargo test --lib --features no_std
+
     # Check if the README is up to date
     # We will do this before all the time-consuming tests
     - name: Check if the README is up to date.

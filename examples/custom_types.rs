@@ -57,6 +57,12 @@ impl From<NumericUnicode> for char {
     }
 }
 
+impl std::fmt::Display for NumericUnicode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", char::from(*self))
+    }
+}
+
 // Implement the Numeric trait for NumericUnicode, so we can interpolate between them.
 impl lineic::Numeric for NumericUnicode {
     // Some constants the interpolator will use

@@ -5,8 +5,6 @@
 //! [![docs.rs](https://img.shields.io/docsrs/lineic)](https://docs.rs/lineic/latest/)
 //! [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/rscarson/lineic/master/LICENSE)
 //!
-//! ## lineic - Flexible linear interpolator for Rust
-//!
 //! This library provides a simple way to interpolate between values across a range.  
 //! It supports N-dimensional values, mixed types, and interpolation across any number of data sets.
 //!
@@ -14,6 +12,9 @@
 //!
 //! The library is designed to be simple to use, and as flexible as possible;  
 //! For use with non-standard types, the library provides a `Numeric` trait that can be implemented.
+//!
+//! The library also provides a `no_std` feature for use in embedded systems.  
+//! **Warning: The `no_std` feature disables the `LinearInterpolator` struct which enables interpolation across >2 data sets**
 //!
 //! ## Examples
 //!
@@ -78,6 +79,7 @@
 //! For other types, you can implement the `Numeric` trait.  
 //! See `examples/custom_types.rs` for an example of how to do this.
 //!
+#![cfg_attr(feature = "no_std", no_std)]
 #![warn(missing_docs)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)] // Module's are not being exported so they are not being repeated
@@ -85,7 +87,12 @@
 mod bucket;
 pub use bucket::InterpolationBucket;
 
+mod range;
+pub use range::ReversibleRange;
+
+#[cfg(not(feature = "no_std"))]
 mod interpolator;
+#[cfg(not(feature = "no_std"))]
 pub use interpolator::LinearInterpolator;
 
 mod number;
@@ -93,7 +100,10 @@ pub use number::Numeric;
 
 /// This module contains a set of same-type interpolator type aliases for common numeric types.
 pub mod interpolators {
-    use crate::{InterpolationBucket, LinearInterpolator};
+    use crate::InterpolationBucket;
+
+    #[cfg(not(feature = "no_std"))]
+    use crate::LinearInterpolator;
 
     /// Interpolation bucket mapping f64 ranges to f64 values
     /// For more information, see [`InterpolationBucket`]
@@ -101,6 +111,7 @@ pub mod interpolators {
 
     /// Linear interpolator for f64 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type F64LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, f64, f64>;
 
     /// Interpolation bucket mapping f32 ranges to f32 values
@@ -109,6 +120,7 @@ pub mod interpolators {
 
     /// Linear interpolator for f32 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type F32LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, f32, f32>;
 
     /// Interpolation bucket mapping i128 ranges to i128 values
@@ -117,6 +129,7 @@ pub mod interpolators {
 
     /// Linear interpolator for i128 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type I128LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, i128, i128>;
 
     /// Interpolation bucket mapping i64 ranges to i64 values
@@ -125,6 +138,7 @@ pub mod interpolators {
 
     /// Linear interpolator for i64 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type I64LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, i64, i64>;
 
     /// Interpolation bucket mapping i32 ranges to i32 values
@@ -133,6 +147,7 @@ pub mod interpolators {
 
     /// Linear interpolator for i32 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type I32LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, i32, i32>;
 
     /// Interpolation bucket mapping i16 ranges to i16 values
@@ -141,6 +156,7 @@ pub mod interpolators {
 
     /// Linear interpolator for i16 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type I16LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, i16, i16>;
 
     /// Interpolation bucket mapping i8 ranges to i8 values
@@ -149,6 +165,7 @@ pub mod interpolators {
 
     /// Linear interpolator for i8 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type I8LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, i8, i8>;
 
     /// Interpolation bucket mapping isize ranges to isize values
@@ -157,6 +174,7 @@ pub mod interpolators {
 
     /// Linear interpolator for isize values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type ISizeLinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, isize, isize>;
 
     /// Interpolation bucket mapping u128 ranges to u128 values
@@ -165,6 +183,7 @@ pub mod interpolators {
 
     /// Linear interpolator for u128 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type U128LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, u128, u128>;
 
     /// Interpolation bucket mapping u64 ranges to u64 values
@@ -173,6 +192,7 @@ pub mod interpolators {
 
     /// Linear interpolator for u64 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type U64LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, u64, u64>;
 
     /// Interpolation bucket mapping u32 ranges to u32 values
@@ -181,6 +201,7 @@ pub mod interpolators {
 
     /// Linear interpolator for u32 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type U32LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, u32, u32>;
 
     /// Interpolation bucket mapping u16 ranges to u16 values
@@ -189,6 +210,7 @@ pub mod interpolators {
 
     /// Linear interpolator for u16 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type U16LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, u16, u16>;
 
     /// Interpolation bucket mapping u8 ranges to u8 values
@@ -197,6 +219,7 @@ pub mod interpolators {
 
     /// Linear interpolator for u8 values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type U8LinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, u8, u8>;
 
     /// Interpolation bucket mapping usize ranges to usize values
@@ -205,5 +228,6 @@ pub mod interpolators {
 
     /// Linear interpolator for usize values
     /// For more information, see [`LinearInterpolator`]
+    #[cfg(not(feature = "no_std"))]
     pub type USizeLinearInterpolator<'a, const N: usize> = LinearInterpolator<'a, N, usize, usize>;
 }

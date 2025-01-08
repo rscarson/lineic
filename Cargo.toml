@@ -12,3 +12,5 @@ categories = ["mathematics", "algorithms", "encoding", "visualization"]
 readme = "readme.md"
 
 [dependencies]
+[features]
+no_std = []

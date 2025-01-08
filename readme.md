@@ -7,8 +7,6 @@
 [![docs.rs](https://img.shields.io/docsrs/lineic)](https://docs.rs/lineic/latest/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/rscarson/lineic/master/LICENSE)
 
-## lineic - Flexible linear interpolator for Rust
-
 This library provides a simple way to interpolate between values across a range.  
 It supports N-dimensional values, mixed types, and interpolation across any number of data sets.
 
@@ -16,6 +14,9 @@ Inverted ranges work fine, and out of range values are clamped to the provided r
 
 The library is designed to be simple to use, and as flexible as possible;  
 For use with non-standard types, the library provides a `Numeric` trait that can be implemented.
+
+The library also provides a `no_std` feature for use in embedded systems.  
+**Warning: The `no_std` feature disables the `LinearInterpolator` struct which enables interpolation across >2 data sets**
 
 ## Examples
 

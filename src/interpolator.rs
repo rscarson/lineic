@@ -1,5 +1,5 @@
-use crate::{number::Numeric, InterpolationBucket};
-use std::{borrow::Cow, ops::RangeInclusive};
+use crate::{number::Numeric, InterpolationBucket, ReversibleRange};
+use std::borrow::Cow;
 
 /// A linear interpolator for a set of values.  
 /// Interpolates between a series of discrete value sets based on a range.
@@ -32,7 +32,6 @@ use std::{borrow::Cow, ops::RangeInclusive};
 #[derive(Debug, PartialEq, Clone)]
 pub struct LinearInterpolator<'a, const N: usize, S: Numeric, T: Numeric> {
     buckets: Cow<'a, [InterpolationBucket<N, S, T>]>,
-    is_reversed: bool,
 }
 impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T> {
     /// Create a new linear interpolator with the given range and value sets.  
@@ -41,8 +40,9 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     /// # Panics
     /// Panics if the number of value sets is too large to be represented by type S  
     /// For a non-panic variant, see [`Self::try_new`]
-    pub fn new(range: RangeInclusive<S>, value_sets: &[[T; N]]) -> Self {
-        Self::try_new(range, value_sets).expect("Number of value sets too large to fit in type S")
+    pub fn new(range: impl Into<ReversibleRange<S>>, value_sets: &[[T; N]]) -> Self {
+        Self::try_new(range, value_sets)
+            .expect("Number of value sets too large to fit in type `S` - Reduce the number of data sets or use a larger type for `range`")
     }
 
     /// Create a new linear interpolator with the given range and value sets.  
@@ -50,45 +50,39 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     ///
     /// Returns None if the number of value sets is too large to be represented by type S.  
     /// This is the non-panic variant of [`Self::new`]
-    pub fn try_new(range: RangeInclusive<S>, value_sets: &[[T; N]]) -> Option<Self> {
+    pub fn try_new(range: impl Into<ReversibleRange<S>>, value_sets: &[[T; N]]) -> Option<Self> {
+        let range = range.into();
+
         if value_sets.is_empty() {
-            let is_reversed = *range.start() > *range.end();
             let buckets = Cow::Owned(vec![InterpolationBucket::new(
                 range,
                 [T::ZERO; N],
                 [T::ZERO; N],
             )]);
-            return Some(Self {
-                buckets,
-                is_reversed,
-            });
+            return Some(Self { buckets });
         }
 
         let capacity = value_sets.len() - 1;
         let mut buckets = Vec::with_capacity(capacity);
-        let is_reversed = *range.start() > *range.end();
 
         // Noop interpolation
         if capacity == 0 {
             let values = value_sets[0];
             buckets.push(InterpolationBucket::new(range, values, values));
             let buckets = Cow::Owned(buckets);
-            return Some(Self {
-                buckets,
-                is_reversed,
-            });
+            return Some(Self { buckets });
         }
 
-        let len = range.start().abs_diff(*range.end());
+        let len = range.start.abs_diff(range.end);
         let step_by = len.checked_div(S::from_usize(capacity)?)?;
 
-        let mut start = *range.start();
+        let mut start = range.start;
         for i in 0..capacity {
             let is_last = i == value_sets.len() - 2;
 
             let end = if is_last {
-                *range.end()
-            } else if is_reversed {
+                range.end
+            } else if range.is_reversed() {
                 start.checked_sub(step_by).unwrap_or(S::ZERO)
             } else {
                 start.checked_add(step_by).unwrap_or(S::MAX)
@@ -103,10 +97,7 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
         }
 
         let buckets = Cow::Owned(buckets);
-        Some(Self {
-            buckets,
-            is_reversed,
-        })
+        Some(Self { buckets })
     }
 
     /// Create a new linear interpolator from a raw slice of buckets.
@@ -128,16 +119,17 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     /// # Safety
     /// - The range for the buckets must form a continuous range
     /// - The buckets must be sorted by range  
-    /// - If the ranges are sorted in descending order, `is_reversed` must be true.  
-    pub const unsafe fn new_from_raw(
-        buckets: &'a [InterpolationBucket<N, S, T>],
-        is_reversed: bool,
-    ) -> Self {
+    pub const unsafe fn new_from_raw(buckets: &'a [InterpolationBucket<N, S, T>]) -> Self {
         let buckets = Cow::Borrowed(buckets);
-        Self {
-            buckets,
-            is_reversed,
-        }
+        Self { buckets }
+    }
+
+    /// Returns true if the range for this interpolator has start > end
+    #[must_use]
+    pub fn is_reversed(&self) -> bool {
+        self.buckets()
+            .first()
+            .is_some_and(|b| b.range().is_reversed())
     }
 
     /// Get the set of discrete interpolations this interpolator will use.
@@ -148,7 +140,7 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
 
     /// Returns the bucket that contains the given value.
     pub fn get_bucket(&self, s: S) -> &InterpolationBucket<N, S, T> {
-        let rev = self.is_reversed;
+        let rev = self.is_reversed();
         let mut slice = self.buckets();
 
         // Binary search for the bucket that contains the value
@@ -156,11 +148,11 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
             let mid = slice.len() / 2;
             let mid_bucket = &slice[mid];
 
-            if mid_bucket.range().contains(&s) {
+            if mid_bucket.range().contains(s) {
                 return mid_bucket;
             }
 
-            if (!rev && s >= *mid_bucket.start()) || (rev && s <= *mid_bucket.start()) {
+            if (!rev && s >= mid_bucket.start()) || (rev && s <= mid_bucket.start()) {
                 slice = &slice[mid..];
             } else {
                 slice = &slice[..mid];

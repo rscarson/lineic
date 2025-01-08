@@ -9,12 +9,18 @@
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_precision_loss)]
 
+#[cfg(not(feature = "no_std"))]
+use std::fmt::{Debug, Display};
+
+#[cfg(feature = "no_std")]
+use core::fmt::{Debug, Display};
+
 /// Represents a numeric type that can be interpolated across
 /// By default, implemented for:
 /// - `f32` `f64`
 /// - `i8` `i16` `i32` `i64` `i128` `isize`
 /// - `u8` `u16` `u32` `u64` `u128` `usize`
-pub trait Numeric: Copy + std::fmt::Debug + PartialOrd {
+pub trait Numeric: Copy + PartialOrd + Debug + Display {
     /// The maximum value for this type
     const MAX: Self;
 
@@ -90,10 +96,11 @@ macro_rules! auto_impl_u {
             }
 
             fn clamp(self, min: Self, max: Self) -> Self {
-                if min < max {
-                    std::cmp::Ord::clamp(self, min, max)
-                } else {
-                    std::cmp::Ord::clamp(self, max, min)
+                let (min, max) = (min.min(max), min.max(max));
+                match self {
+                    _ if self < min => min,
+                    _ if self > max => max,
+                    _ => self,
                 }
             }
 
@@ -144,10 +151,11 @@ macro_rules! auto_impl_i {
             }
 
             fn clamp(self, min: Self, max: Self) -> Self {
-                if min < max {
-                    std::cmp::Ord::clamp(self, min, max)
-                } else {
-                    std::cmp::Ord::clamp(self, max, min)
+                let (min, max) = (min.min(max), min.max(max));
+                match self {
+                    _ if self < min => min,
+                    _ if self > max => max,
+                    _ => self,
                 }
             }
 
@@ -186,62 +194,102 @@ macro_rules! auto_impl_i {
     };
 }
 
-macro_rules! auto_impl_f {
-    ($t:ty) => {
-        impl Numeric for $t {
-            const MAX: Self = <$t>::MAX;
-            const ZERO: Self = 0.0;
-            const ONE: Self = 1.0;
+impl Numeric for f64 {
+    const MAX: Self = f64::MAX;
+    const ZERO: Self = 0.0;
+    const ONE: Self = 1.0;
 
-            fn abs(self) -> Self {
-                <$t>::abs(self)
-            }
+    fn abs(self) -> Self {
+        // no_std compatible abs implementation
+        f64::from_bits(self.to_bits() & (i64::MAX as u64))
+    }
 
-            fn clamp(self, min: Self, max: Self) -> Self {
-                if min < max {
-                    <$t>::clamp(self, min, max)
-                } else {
-                    <$t>::clamp(self, max, min)
-                }
-            }
+    fn clamp(self, min: Self, max: Self) -> Self {
+        let (min, max) = (min.min(max), min.max(max));
+        f64::clamp(self, min, max)
+    }
 
-            fn checked_sub(self, other: Self) -> Option<Self> {
-                Some(self - other)
-            }
+    fn checked_sub(self, other: Self) -> Option<Self> {
+        Some(self - other)
+    }
 
-            fn checked_add(self, other: Self) -> Option<Self> {
-                Some(self + other)
-            }
+    fn checked_add(self, other: Self) -> Option<Self> {
+        Some(self + other)
+    }
 
-            fn checked_mul(self, other: Self) -> Option<Self> {
-                Some(self * other)
-            }
+    fn checked_mul(self, other: Self) -> Option<Self> {
+        Some(self * other)
+    }
 
-            fn checked_div(self, other: Self) -> Option<Self> {
-                Some(self / other)
-            }
+    fn checked_div(self, other: Self) -> Option<Self> {
+        Some(self / other)
+    }
 
-            fn from_usize(value: usize) -> Option<Self> {
-                if value <= <$t>::MAX as usize {
-                    Some(value as Self)
-                } else {
-                    None
-                }
-            }
-
-            fn into_f64(self) -> f64 {
-                self as f64
-            }
-
-            fn from_f64(value: f64) -> Option<Self> {
-                Some(value as Self)
-            }
+    fn from_usize(value: usize) -> Option<Self> {
+        if value <= f64::MAX as usize {
+            Some(value as Self)
+        } else {
+            None
         }
-    };
+    }
+
+    fn into_f64(self) -> f64 {
+        self
+    }
+
+    fn from_f64(value: f64) -> Option<Self> {
+        Some(value)
+    }
 }
 
-auto_impl_f!(f32);
-auto_impl_f!(f64);
+impl Numeric for f32 {
+    const MAX: Self = f32::MAX;
+    const ZERO: Self = 0.0;
+    const ONE: Self = 1.0;
+
+    fn abs(self) -> Self {
+        // no_std compatible abs implementation
+        f32::from_bits(self.to_bits() & (i32::MAX as u32))
+    }
+
+    fn clamp(self, min: Self, max: Self) -> Self {
+        let (min, max) = (min.min(max), min.max(max));
+        f32::clamp(self, min, max)
+    }
+
+    fn checked_sub(self, other: Self) -> Option<Self> {
+        Some(self - other)
+    }
+
+    fn checked_add(self, other: Self) -> Option<Self> {
+        Some(self + other)
+    }
+
+    fn checked_mul(self, other: Self) -> Option<Self> {
+        Some(self * other)
+    }
+
+    fn checked_div(self, other: Self) -> Option<Self> {
+        Some(self / other)
+    }
+
+    fn from_usize(value: usize) -> Option<Self> {
+        if value <= f32::MAX as usize {
+            Some(value as Self)
+        } else {
+            None
+        }
+    }
+
+    fn into_f64(self) -> f64 {
+        self as f64
+    }
+
+    fn from_f64(value: f64) -> Option<Self> {
+        Some(value as Self)
+    }
+}
+
 auto_impl_i!(i8);
 auto_impl_i!(i16);
 auto_impl_i!(i32);
