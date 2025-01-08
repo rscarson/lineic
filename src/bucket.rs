@@ -49,7 +49,7 @@ impl<const N: usize, S: Numeric, T: Numeric> InterpolationBucket<N, S, T> {
     /// This will enable the bucket to smoothly interpolate from lo to hi for T values in the range.  
     /// Values < range min will be clamped to lo.  
     /// Values > range max will be clamped to hi.
-    pub const fn new_const(range: (S, S), values_lo: [T; N], values_hi: [T; N]) -> Self {
+    pub const fn from_tuple(range: (S, S), values_lo: [T; N], values_hi: [T; N]) -> Self {
         let range = ReversibleRange::new(range.0, range.1);
         Self {
             range,

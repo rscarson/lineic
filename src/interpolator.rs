@@ -110,8 +110,8 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
     /// ```rust
     /// use lineic::{InterpolationBucket, LinearInterpolator};
     /// const INTERPOLATOR: LinearInterpolator<3, f32, f32> = LinearInterpolator::new_from_raw(&[
-    ///     InterpolationBucket::new_const((0.0, 50.0), [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
-    ///     InterpolationBucket::new_const((50.0, 100.0), [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]),
+    ///     InterpolationBucket::from_tuple((0.0, 50.0), [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    ///     InterpolationBucket::from_tuple((50.0, 100.0), [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]),
     /// ]);
     /// ```
     ///
@@ -188,23 +188,30 @@ impl<'a, const N: usize, S: Numeric, T: Numeric> LinearInterpolator<'a, N, S, T>
 /// A macro to create a static linear interpolator.  
 /// This macro is a convenience wrapper around [`LinearInterpolator::new_from_raw`].
 ///
+/// The syntax is a series of semicolon separated statements of the form:  
+/// `(start => end) [values_from] => [values_to];`
+///
+/// Where:
+/// - `start..=end` form an inclusive range
+/// - `values_from` and `values_to` are arrays of values to interpolate between
+///
 /// # Example
 /// ```rust
 /// use lineic::{static_interpolator, LinearInterpolator};
 ///
 /// const MY_INTERPOLATOR: LinearInterpolator<3, f32, f32> = static_interpolator! {
-///     0.0..=50.0 => [0.0, 0.0, 0.0]..[1.0, 1.0, 1.0],
-///     50.0..=100.0 => [1.0, 1.0, 1.0]..[2.0, 2.0, 2.0]
+///     (0.0 => 50.0) [0.0, 0.0, 0.0] => [1.0, 1.0, 1.0];
+///     (50.0 => 100.0) [1.0, 1.0, 1.0] => [2.0, 2.0, 2.0];
 /// };
 /// ```
 #[macro_export]
 macro_rules! static_interpolator {
     ($(
-        $from:literal ..= $to:literal => [$($values_from:expr),+]..[$($values_to:expr),+]
-    ),+) => {
+        ($from:expr => $to:expr) [$($values_from:expr),+] => [$($values_to:expr),+]
+    );+ $(;)?) => {
         $crate::LinearInterpolator::new_from_raw(&[
             $(
-                $crate::InterpolationBucket::new_const(
+                $crate::InterpolationBucket::from_tuple(
                     ($from, $to),
                     [$($values_from),+],
                     [$($values_to),+]

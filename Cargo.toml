@@ -4,7 +4,7 @@ authors = ["@rscarson"]
 description = "Flexible linear interpolator for Rust"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-version = "0.3.0"
+version = "0.4.0"
 repository = "https://github.com/rscarson/lineic"
 
 keywords = ["rust", "algorithms", "math", "interpolation", "mathematics"]
